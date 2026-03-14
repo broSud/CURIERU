@@ -35,6 +35,21 @@ const obiecte = [
   "o pungă cu aer de munte... din Ploiești 🏔️",
   "un ceas care merge înapoi ⏰⬅️",
   "o hartă spre comoara ta interioară 🗺️❤️",
+  "o factură de gaze pe numele tău, înrămată frumos 📄🔥",
+  "un set de nervi de rezervă (că ăia vechi s-au dus) 🧠💥",
+  "o doză de 'Tupeu la conservă' - expirată în 2012 🥫🙄",
+  "un abonament premium la 'Gura Lumii' (valabil pe tot cartierul) 🗣️📢",
+  "o oglindă care îți zice adevărul chiar dacă nu l-ai cerut 🪞💀",
+  "o pungă cu scuzele pe care nu le-ai folosit când trebuia 🎒🤐",
+  "un GPS setat să te scoată mereu din zona de confort 📍😬",
+  "o sticlă de apă sfințită pentru momentele când intri pe Twitter/X ⛪💧",
+  "un manual de utilizare pentru propria viață (scris în chineză) 📖🏮",
+  "o lumânare parfumată cu aromă de 'Salariu în prima zi' (dispare imediat) 🕯️💸",
+  "un test de răbdare (cutia e goală, trebuie să aștepți) 📦⏳",
+  "o diplomă de 'Expert în decizii proaste la 2 dimineața' 🎓🍹",
+  "un voucher de 50% reducere la propria demnitate 🎫🤡",
+  "o cutie cu 'Dă-te-n mă-ta' pentru momente de criză 🎁🤫",
+  "o pereche de ochelari care fac toți oamenii să pară inteligenți (nu funcționează) 👓🚫",
 ];
 
 // Mesaje amuzante pentru !livrare
@@ -46,6 +61,15 @@ const livrari = [
   "Atenție: coletul a fost miros... verificat de 3 câini înainte de livrare. 🐕🐕🐕",
   "Garantăm că nu am deschis coletul. (Nu garantăm.) 📦👀",
   "Livrat cu dragoste, cu grija și cu mașina unui vecin. 🚙❤️",
+  "Coletul a fost livrat de un curier care era mai supărat pe viață decât tine. 😒📦",
+  "Am vrut să-l aducem mai repede, dar am găsit un loc de parcare bun și n-am vrut să-l pierdem. 🚗🅿️",
+  "Coletul tău a fost martor la 3 bătăi în trafic și o nuntă. E puțin traumatizat. 🥊👰",
+  "L-am lăsat la vecinul ăla pe care îl urăști. Succes la recuperat! 🏠🐍",
+  "Curierul a bătut la ușă o singură dată, la intensitatea de 0.1 decibeli, apoi a fugit. 🏃💨",
+  "Garantăm că pachetul nu a fost scăpat pe jos de mai mult de 4 ori. Probabil. 📉📦",
+  "Livrarea a întârziat pentru că GPS-ul ne-a trimis în 1994 și ne-a fost greu să revenim. 🕰️🚗",
+  "Am deschis coletul doar ca să vedem dacă ai gusturi bune. Ne-am cam lămurit... 📦🤔",
+  "Coletul a supraviețuit miraculos după ce a fost folosit drept scaun la cafeaua de dimineață. ☕💺",
 ];
 
 client.once('ready', () => {
