@@ -1,4 +1,7 @@
-const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder, Partials } = require('discord.js');
+
+// ID-ul mesajului de regulament
+const regulamentMessageId = '1482157287643807928';
 
 const client = new Client({
   intents: [
@@ -6,26 +9,13 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessageReactions,
   ],
+  partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
 
 // Lista de obiecte amuzante pentru !colet
 const obiecte = [
-  "o factură de gaze pe numele tău, înrămată frumos 📄🔥",
-  "un set de nervi de rezervă (că ăia vechi s-au dus) 🧠💥",
-  "o doză de 'Tupeu la conservă' - expirată în 2012 🥫🙄",
-  "un abonament premium la 'Gura Lumii' (valabil pe tot cartierul) 🗣️📢",
-  "o oglindă care îți zice adevărul chiar dacă nu l-ai cerut 🪞💀",
-  "o pungă cu scuzele pe care nu le-ai folosit când trebuia 🎒🤐",
-  "un GPS setat să te scoată mereu din zona de confort 📍😬",
-  "o sticlă de apă sfințită pentru momentele când intri pe Twitter/X ⛪💧",
-  "un manual de utilizare pentru propria viață (scris în chineză) 📖🏮",
-  "o lumânare parfumată cu aromă de 'Salariu în prima zi' (dispare imediat) 🕯️💸",
-  "un test de răbdare (cutia e goală, trebuie să aștepți) 📦⏳",
-  "o diplomă de 'Expert în decizii proaste la 2 dimineața' 🎓🍹",
-  "un voucher de 50% reducere la propria demnitate 🎫🤡",
-  "o cutie cu 'Dă-te-n mă-ta' pentru momente de criză 🎁🤫",
-  "o pereche de ochelari care fac toți oamenii să pară inteligenți (nu funcționează) 👓🚫",
   "o pereche de șosete cu pisici 🐱🧦",
   "o găleată plină cu confetti 🎊",
   "un pinguin de cauciuc care scârțâie 🐧",
@@ -50,15 +40,6 @@ const obiecte = [
 
 // Mesaje amuzante pentru !livrare
 const livrari = [
-  "Coletul a fost livrat de un curier care era mai supărat pe viață decât tine. 😒📦",
-  "Am vrut să-l aducem mai repede, dar am găsit un loc de parcare bun și n-am vrut să-l pierdem. 🚗🅿️",
-  "Coletul tău a fost martor la 3 bătăi în trafic și o nuntă. E puțin traumatizat. 🥊👰",
-  "L-am lăsat la vecinul ăla pe care îl urăști. Succes la recuperat! 🏠🐍",
-  "Curierul a bătut la ușă o singură dată, la intensitatea de 0.1 decibeli, apoi a fugit. 🏃💨",
-  "Garantăm că pachetul nu a fost scăpat pe jos de mai mult de 4 ori. Probabil. 📉📦",
-  "Livrarea a întârziat pentru că GPS-ul ne-a trimis în 1994 și ne-a fost greu să revenim. 🕰️🚗",
-  "Am deschis coletul doar ca să vedem dacă ai gusturi bune. Ne-am cam lămurit... 📦🤔",
-  "Coletul a supraviețuit miraculos după ce a fost folosit drept scaun la cafeaua de dimineață. ☕💺",
   "Curierii noștri au traversat 3 oceane, 2 deșerturi și un Kaufland pentru tine! 🌊🏜️🛒",
   "Coletul a fost purtat pe mâini, nu s-a pus jos NICIODATĂ... aproape. 🤲",
   "Livrare în 3-5 zile lucrătoare sau în 3-5 ani, depinde de trafic. 🚗💨",
@@ -73,20 +54,10 @@ client.once('ready', () => {
 });
 
 // =====================
-// BUN VENIT + ROL AUTOMAT
+// MESAJ BUN VENIT
 // =====================
 client.on('guildMemberAdd', async (member) => {
   try {
-    // Dă rolul CURIER automat
-    const rol = member.guild.roles.cache.find(r => r.name === 'CURIER');
-    if (rol) {
-      await member.roles.add(rol);
-      console.log(`✅ Rol CURIER adăugat automat la ${member.user.username}`);
-    } else {
-      console.log('❌ Rolul CURIER nu a fost găsit!');
-    }
-
-    // Trimite mesaj de bun venit
     const canal = member.guild.channels.cache.find(c => c.name === 'bun-venit');
     if (!canal) return;
 
@@ -104,9 +75,7 @@ client.on('guildMemberAdd', async (member) => {
       .setTitle(`📬 ${mesajRandom}`)
       .setDescription(
         `Bine ai venit pe server, **${member.user.username}**! 🎉\n\n` +
-        `📦 Ai primit automat rolul **CURIER**! 🚚\n\n` +
-        `> Scrie \`!curier\` ca să vezi ce poți face\n` +
-        `> Scrie \`!colet\` ca să primești primul tău colet misterios 🎁\n\n` +
+        `📋 Citește regulamentul și reacționează cu 📋 pentru a primi rolul **CURIER**!\n\n` +
         `🏆 *Bucură-te de comunitatea Curierilor!*`
       )
       .setThumbnail(member.user.displayAvatarURL())
@@ -116,6 +85,42 @@ client.on('guildMemberAdd', async (member) => {
     await canal.send({ embeds: [embed] });
   } catch (err) {
     console.error('Eroare la bun venit:', err);
+  }
+});
+
+// =====================
+// REACTION ROLE — adaugă rol când reacționează la regulament
+// =====================
+client.on('messageReactionAdd', async (reaction, user) => {
+  if (user.bot) return;
+  if (reaction.message.id !== regulamentMessageId) return;
+
+  try {
+    // Fetch complet dacă mesajul e partial
+    if (reaction.partial) await reaction.fetch();
+    if (reaction.message.partial) await reaction.message.fetch();
+
+    const guild = reaction.message.guild;
+    const member = await guild.members.fetch(user.id);
+    const rol = guild.roles.cache.find(r => r.name === 'CURIER');
+
+    if (!rol) {
+      console.log('❌ Rolul CURIER nu a fost găsit!');
+      return;
+    }
+
+    await member.roles.add(rol);
+    console.log(`✅ Rol CURIER adăugat la ${user.username}`);
+
+    // Trimite DM de confirmare
+    try {
+      await user.send(`✅ Ai acceptat regulamentul și ai primit rolul **CURIER** pe serverul Stark Industries! 🚚📦`);
+    } catch (e) {
+      // DM-urile pot fi dezactivate, ignorăm eroarea
+    }
+
+  } catch (err) {
+    console.error('Eroare la reaction role:', err);
   }
 });
 
@@ -196,4 +201,3 @@ client.on('messageCreate', async (message) => {
 });
 
 client.login(process.env.TOKEN);
-
