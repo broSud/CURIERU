@@ -96,6 +96,7 @@ client.on('guildMemberAdd', async (member) => {
       "Soneria a sunat! 🔔",
       "Un curier nou a bătut la ușă! 🚪",
       "Livrare nouă a sosit! 🚚",
+      "Livrare speciala! 🚚",
     ];
 
     const mesajRandom = mesaje[Math.floor(Math.random() * mesaje.length)];
