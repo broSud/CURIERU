@@ -1,7 +1,13 @@
-const { Client, GatewayIntentBits, EmbedBuilder, Partials } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder, Partials, PermissionFlagsBits } = require('discord.js');
 
 // ID-ul mesajului de regulament
 const regulamentMessageId = '1482157287643807928';
+
+// Stocare avertismente (in-memory)
+const avertismente = {};
+
+// Stocare giveaway-uri active
+const giveawayuri = {};
 
 const client = new Client({
   intents: [
@@ -89,14 +95,13 @@ client.on('guildMemberAdd', async (member) => {
 });
 
 // =====================
-// REACTION ROLE — adaugă rol când reacționează la regulament
+// REACTION ROLE — regulament
 // =====================
 client.on('messageReactionAdd', async (reaction, user) => {
   if (user.bot) return;
   if (reaction.message.id !== regulamentMessageId) return;
 
   try {
-    // Fetch complet dacă mesajul e partial
     if (reaction.partial) await reaction.fetch();
     if (reaction.message.partial) await reaction.message.fetch();
 
@@ -112,15 +117,28 @@ client.on('messageReactionAdd', async (reaction, user) => {
     await member.roles.add(rol);
     console.log(`✅ Rol CURIER adăugat la ${user.username}`);
 
-    // Trimite DM de confirmare
     try {
-      await user.send(`✅ Ai acceptat regulamentul și ai primit rolul **CURIER** pe serverul Stark Industries! 🚚📦`);
-    } catch (e) {
-      // DM-urile pot fi dezactivate, ignorăm eroarea
-    }
+      await user.send(`✅ Ai acceptat regulamentul și ai primit rolul **CURIER** pe server! 🚚📦`);
+    } catch (e) {}
 
   } catch (err) {
     console.error('Eroare la reaction role:', err);
+  }
+});
+
+// =====================
+// GIVEAWAY — reacții
+// =====================
+client.on('messageReactionAdd', async (reaction, user) => {
+  if (user.bot) return;
+
+  const giveaway = giveawayuri[reaction.message.id];
+  if (!giveaway) return;
+  if (reaction.emoji.name !== '🎉') return;
+
+  if (!giveaway.participanti.includes(user.id)) {
+    giveaway.participanti.push(user.id);
+    console.log(`🎉 ${user.username} s-a înscris la giveaway`);
   }
 });
 
@@ -190,13 +208,186 @@ client.on('messageCreate', async (message) => {
         `📦 **Comenzi disponibile:**\n` +
         `> \`!colet\` — Deschide un colet misterios\n` +
         `> \`!livrare\` — Verifică statusul livrării tale\n` +
-        `> \`!curier\` — Afișează acest mesaj\n\n` +
+        `> \`!curier\` — Afișează acest mesaj\n` +
+        `> \`!sondaj [întrebare]\` — Creează un sondaj\n` +
+        `> \`!giveaway [minute] [premiu]\` — Pornește un giveaway\n\n` +
         `🏆 *Curierii sunt cei mai buni abonați din univers!*`
       )
       .setFooter({ text: 'Curierii — comunitatea oficială' })
       .setTimestamp();
 
     await message.reply({ embeds: [embed] });
+  }
+
+  // =====================
+  // COMANDA !warn (doar admini/moderatori)
+  // =====================
+  if (command === 'warn') {
+    if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+      return message.reply('❌ Nu ai permisiunea să avertizezi membri!');
+    }
+
+    const target = message.mentions.members.first();
+    if (!target) return message.reply('❌ Menționează un utilizator! Ex: `!warn @user motiv`');
+
+    const motiv = args.slice(1).join(' ') || 'Fără motiv specificat';
+
+    if (!avertismente[target.id]) avertismente[target.id] = [];
+    avertismente[target.id].push({
+      motiv,
+      data: new Date().toLocaleDateString('ro-RO'),
+      de: message.author.username,
+    });
+
+    const numar = avertismente[target.id].length;
+
+    const embed = new EmbedBuilder()
+      .setColor(0xff0000)
+      .setTitle('⚠️ AVERTISMENT ⚠️')
+      .setDescription(
+        `**${target.user.username}** a primit un avertisment!\n\n` +
+        `📋 **Motiv:** ${motiv}\n` +
+        `👮 **De la:** ${message.author.username}\n` +
+        `🔢 **Total avertismente:** ${numar}\n\n` +
+        `${numar >= 3 ? '🚨 *3 avertismente — consideră să iei măsuri!*' : ''}`
+      )
+      .setTimestamp();
+
+    await message.channel.send({ embeds: [embed] });
+
+    try {
+      await target.send(`⚠️ Ai primit un avertisment pe **Stark Industries**!\n📋 Motiv: **${motiv}**\n🔢 Total: **${numar}** avertisment(e)`);
+    } catch (e) {}
+  }
+
+  // =====================
+  // COMANDA !warnings
+  // =====================
+  if (command === 'warnings') {
+    const target = message.mentions.members.first() || message.member;
+    const lista = avertismente[target.id];
+
+    if (!lista || lista.length === 0) {
+      return message.reply(`✅ **${target.user.username}** nu are niciun avertisment!`);
+    }
+
+    const listaText = lista.map((w, i) =>
+      `**${i + 1}.** ${w.motiv} — *${w.data}* (de la ${w.de})`
+    ).join('\n');
+
+    const embed = new EmbedBuilder()
+      .setColor(0xff6600)
+      .setTitle(`⚠️ Avertismente pentru ${target.user.username}`)
+      .setDescription(listaText)
+      .setFooter({ text: `Total: ${lista.length} avertisment(e)` })
+      .setTimestamp();
+
+    await message.reply({ embeds: [embed] });
+  }
+
+  // =====================
+  // COMANDA !clearwarn (doar admini)
+  // =====================
+  if (command === 'clearwarn') {
+    if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
+      return message.reply('❌ Doar adminii pot șterge avertismente!');
+    }
+
+    const target = message.mentions.members.first();
+    if (!target) return message.reply('❌ Menționează un utilizator!');
+
+    avertismente[target.id] = [];
+    await message.reply(`✅ Avertismentele lui **${target.user.username}** au fost șterse!`);
+  }
+
+  // =====================
+  // COMANDA !sondaj
+  // =====================
+  if (command === 'sondaj') {
+    const intrebare = args.join(' ');
+    if (!intrebare) return message.reply('❌ Scrie o întrebare! Ex: `!sondaj Care e culoarea preferată?`');
+
+    const embed = new EmbedBuilder()
+      .setColor(0x9b59b6)
+      .setTitle('📊 SONDAJ NOU! 📊')
+      .setDescription(
+        `**${intrebare}**\n\n` +
+        `👍 — Da / Pentru\n` +
+        `👎 — Nu / Împotrivă\n\n` +
+        `*Reacționează pentru a vota!*`
+      )
+      .setFooter({ text: `Sondaj creat de ${message.author.username}` })
+      .setTimestamp();
+
+    const msg = await message.channel.send({ embeds: [embed] });
+    await msg.react('👍');
+    await msg.react('👎');
+    await message.delete().catch(() => {});
+  }
+
+  // =====================
+  // COMANDA !giveaway
+  // =====================
+  if (command === 'giveaway') {
+    if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+      return message.reply('❌ Doar moderatorii pot porni un giveaway!');
+    }
+
+    const minute = parseInt(args[0]);
+    const premiu = args.slice(1).join(' ');
+
+    if (!minute || isNaN(minute) || !premiu) {
+      return message.reply('❌ Folosește: `!giveaway [minute] [premiu]`\nEx: `!giveaway 10 un rol special`');
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor(0xf1c40f)
+      .setTitle('🎉 GIVEAWAY! 🎉')
+      .setDescription(
+        `**Premiu:** ${premiu}\n\n` +
+        `Reacționează cu 🎉 pentru a participa!\n\n` +
+        `⏰ **Se termină în:** ${minute} minute\n` +
+        `🎁 **Organizat de:** ${message.author.username}`
+      )
+      .setFooter({ text: `Giveaway activ — ${minute} minute` })
+      .setTimestamp();
+
+    const msg = await message.channel.send({ embeds: [embed] });
+    await msg.react('🎉');
+
+    giveawayuri[msg.id] = {
+      premiu,
+      participanti: [],
+      canal: message.channel.id,
+    };
+
+    // Timer pentru final giveaway
+    setTimeout(async () => {
+      const giveaway = giveawayuri[msg.id];
+      if (!giveaway) return;
+
+      if (giveaway.participanti.length === 0) {
+        await message.channel.send('😢 Nimeni nu a participat la giveaway!');
+        delete giveawayuri[msg.id];
+        return;
+      }
+
+      const castigatorId = giveaway.participanti[Math.floor(Math.random() * giveaway.participanti.length)];
+
+      const embedFinal = new EmbedBuilder()
+        .setColor(0xf1c40f)
+        .setTitle('🏆 GIVEAWAY ÎNCHEIAT! 🏆')
+        .setDescription(
+          `**Premiu:** ${giveaway.premiu}\n\n` +
+          `🎉 **Câștigător:** <@${castigatorId}>\n\n` +
+          `Felicitări! Contactează un admin pentru a ridica premiul!`
+        )
+        .setTimestamp();
+
+      await message.channel.send({ embeds: [embedFinal] });
+      delete giveawayuri[msg.id];
+
+    }, minute * 60 * 1000);
   }
 });
 
